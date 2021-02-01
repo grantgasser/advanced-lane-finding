@@ -133,8 +133,8 @@ def threshold(gradient_binary, color_binary):
     Combine color and gradient thresholding
     """
     binary = np.zeros_like(gradient_binary)
-    # switch to "OR", |, if want more pixels
-    binary[(gradient_binary == 1) & (color_binary == 1)] = 1
+    # switch between OR and AND
+    binary[(gradient_binary == 1) | (color_binary == 1)] = 1
     return binary
 
 
@@ -168,10 +168,17 @@ def test_thresholding():
     Test combination of gradient and color
     """
     final_output = threshold(gradient_binary, color_binary)
-    plt.imshow(final_output, cmap='gray')
-    plt.show()
 
     # not bad, actually only has the lane lines w/o masking (maybe can take advantage of that)
     # could switch to "OR" when combining if want MORE pixels
+    f, (ax1, ax2) = plt.subplots(1, 2, figsize=(24, 9))
+    f.tight_layout()
+    ax1.imshow(cv2.cvtColor(img, cv2.COLOR_BGR2RGB))
+    ax1.set_title('Original Image', fontsize=50)
+    ax2.imshow(final_output, cmap='gray')
+    ax2.set_title('Thresholded (OR)', fontsize=50)
+    plt.subplots_adjust(left=0., right=1, top=0.9, bottom=0.)
+    plt.savefig('../output_images/test_threshold_OR.png')
+    plt.show()
 
-#test_thresholding()
+test_thresholding()
