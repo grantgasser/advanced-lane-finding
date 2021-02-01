@@ -18,6 +18,9 @@ def calibrate(path, xy, draw_corners=False):
         path (str): path of images in glob format
         xy ((int, int)): tuple of ints, number of x and y corners
         draw_corners (bool): whether to draw and plot corners of each chessboard
+
+    Returns:
+        calibration information (camera matrix, distortion coefficients, vectors)
     """
     images = glob.glob(path)
 
@@ -66,34 +69,38 @@ def undistort(img, mtx, dist):
     Given distortion coefficients, undistort the img
 
     Args:
-        img (np.array): img to be undistorted
-        mtx (3x3 np.array): camera projection matrix
-        dist (5x1 np.array): distortion coefficients (k1, k2, p1, p2, k3)
+        img (np.ndarray): img to be undistorted
+        mtx (3x3 np.ndarray): camera projection matrix
+        dist (5x1 np.ndarray): distortion coefficients (k1, k2, p1, p2, k3)
     
     Returns:
-        undistorted image as np.array
+        undistorted image as np.ndarray
     """
     return cv2.undistort(img, mtx, dist, None, mtx) 
 
 
-# test camera calibration
-ret, mtx, dist, rvecs, tvecs = calibrate(
-    path='../camera_cal/calibration*.jpg', 
-    xy=(9, 6),
-    draw_corners=False
-)
+def test_calibrate():
+    # test camera calibration
+    ret, mtx, dist, rvecs, tvecs = calibrate(
+        path='../camera_cal/calibration*.jpg', 
+        xy=(9, 6),
+        draw_corners=False
+    )
 
-# undistort a test image
-test_img = cv2.imread('../camera_cal/calibration3.jpg')
-undist = undistort(test_img, mtx, dist)
+    # undistort a test image
+    test_img = cv2.imread('../camera_cal/calibration3.jpg')
+    undist = undistort(test_img, mtx, dist)
 
-# plot before and after correcting distortion
-f, (ax1, ax2) = plt.subplots(1, 2, figsize=(24, 9))
-f.tight_layout()
-ax1.imshow(test_img)
-ax1.set_title('Original Image', fontsize=50)
-ax2.imshow(undist)
-ax2.set_title('Undistorted Image', fontsize=50)
-plt.subplots_adjust(left=0., right=1, top=0.9, bottom=0.)
-plt.savefig('../output_images/test_undistort.png')
-plt.show()
+    # plot before and after correcting distortion
+    f, (ax1, ax2) = plt.subplots(1, 2, figsize=(24, 9))
+    f.tight_layout()
+    ax1.imshow(test_img)
+    ax1.set_title('Original Image', fontsize=50)
+    ax2.imshow(undist)
+    ax2.set_title('Undistorted Image', fontsize=50)
+    plt.subplots_adjust(left=0., right=1, top=0.9, bottom=0.)
+    plt.savefig('../output_images/test_undistort.png')
+    plt.show()
+
+
+# test_calibrate()
