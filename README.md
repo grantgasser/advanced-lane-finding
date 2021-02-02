@@ -1,6 +1,6 @@
 # Advanced Lane Finding using Computer Vision
 
-This is a software pipeline that identifies lane lines in a video stream. See `src/main.py` for the main script that contains the pieline.
+This is a detailed description of a software pipeline that identifies lane lines in a video stream. See `src/main.py` for the main script that contains the pieline.
 
 ## Camera Calibration
 First, I performed [camera calibration](https://docs.opencv.org/4.4.0/dc/dbb/tutorial_py_calibration.html) using chessboard images stored in `camera_cal/`:
@@ -26,8 +26,17 @@ Here, the lane lines show up clearly. See `src/threshold.py` for the code.
 ## Perspective Transform (Bird's-eye view)
 The next thing to do is to measure curvature. This is best done by looking at the lanes from a top-down view. Using a template image w/ relatively straight lane lines (`test_images/straight_lines1.png`), I performed a perspective transform using 4 manually derived source points from the image and mapping them to a warped, transformed image.
 
-Here is the original image with the points drawn: 
+Here is the original image with the points (and lines) drawn: 
 ![Transform Points](./output_images/transform_pts.png)
 
-and here is the transformation: 
+and here is the transformed image w/ the associated points: 
 ![Transformed Image](./output_images/transform_img.png)
+
+Here is what the transform looks like on an undistorted and thresholded image of a _curved_ road: 
+
+![Original Binary](./output_images/original_binary.png)
+
+
+![Test Transform](./output_images/test_transform.png)
+
+Here, one can see the clear right curvature of the road. Fortunately, despite the curvature, the lanes are still parallel, indicating the transform was done correctly. See `src/perspective_transform.py` for the code.

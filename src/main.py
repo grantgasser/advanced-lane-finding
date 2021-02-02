@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 
 from calibrate import calibrate, undistort
 import threshold as th
+import perspective_transform as pt
 
 # calibrate the camera using the given chessboard images
 ret, mtx, dist, rvecs, tvecs = calibrate(
@@ -24,7 +25,7 @@ plt.title('Undistorted')
 plt.show()
 
 # convert to gray
-gray = cv2.cvtColor(rgb_img, cv2.COLOR_RGB2GRAY)  # RGB => GRAY
+gray = cv2.cvtColor(undist, cv2.COLOR_RGB2GRAY)  # RGB => GRAY
 
 # apply gradient and color thresholding
 gradx = th.abs_sobel_thresh(gray)
@@ -42,3 +43,26 @@ plt.show()
 
 # perspective transform: easier to measure curvature of lane from bird's eye view
 # also makes it easier to match car's location with a road map
+src, dst, M = pt.get_transform_matrix()
+
+# transform image
+size = (final_output.shape[1], final_output.shape[0])
+transformed_img = cv2.warpPerspective(final_output, M, size)
+
+# draw lines on original
+gray_final_output = np.uint8(final_output*255)  # binary to gray
+bgr_final_output = cv2.cvtColor(gray_final_output, cv2.COLOR_GRAY2BGR)
+pt.draw_plot_save(
+    bgr_final_output, 
+    src,
+    'Original Binary',
+    '../output_images/original_binary.png'
+)
+
+# draw lines on transformed
+gray_transformed_img = np.uint8(transformed_img*255)
+bgr_transformed_img = cv2.cvtColor(gray_transformed_img, cv2.COLOR_GRAY2BGR)
+pt.draw_plot_save(bgr_transformed_img, dst, 'Test Transformation', '../output_images/test_transform.png')
+
+
+
