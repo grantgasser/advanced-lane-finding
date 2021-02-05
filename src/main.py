@@ -8,6 +8,7 @@ import matplotlib.pyplot as plt
 from calibrate import calibrate, undistort
 import threshold as th
 import perspective_transform as pt
+from line import Line
 
 # calibrate the camera using the given chessboard images
 ret, mtx, dist, rvecs, tvecs = calibrate(
@@ -20,9 +21,9 @@ ret, mtx, dist, rvecs, tvecs = calibrate(
 bgr_img = cv2.imread('../test_images/test6.jpg')
 rgb_img = cv2.cvtColor(bgr_img, cv2.COLOR_BGR2RGB)  # BGR => RGB
 undist = undistort(rgb_img, mtx, dist)
-plt.imshow(undist)
-plt.title('Undistorted')
-plt.show()
+# plt.imshow(undist)
+# plt.title('Undistorted')
+# plt.show()
 
 # convert to gray
 gray = cv2.cvtColor(undist, cv2.COLOR_RGB2GRAY)  # RGB => GRAY
@@ -37,9 +38,9 @@ color_binary = th.saturation_thresh(bgr_img)
 
 # combine gradient and color thresholding
 final_output = th.threshold(gradient_binary, color_binary)
-plt.imshow(final_output, cmap='gray')
-plt.title('Thresholding')
-plt.show()
+# plt.imshow(final_output, cmap='gray')
+# plt.title('Thresholding')
+# plt.show()
 
 # perspective transform: easier to measure curvature of lane from bird's eye view
 # also makes it easier to match car's location with a road map
@@ -65,4 +66,12 @@ bgr_transformed_img = cv2.cvtColor(gray_transformed_img, cv2.COLOR_GRAY2BGR)
 pt.draw_plot_save(bgr_transformed_img, dst, 'Test Transformation', '../output_images/test_transform.png')
 
 
+# histogram peaks
+# bottom_half = transformed_img[transformed_img.shape[0]//2:, :]
+# hist = np.sum(bottom_half, axis=0)
+# plt.plot(hist)
+# plt.show()
 
+# line class
+line = Line()
+line.find_line(transformed_img)

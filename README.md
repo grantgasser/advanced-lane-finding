@@ -39,4 +39,13 @@ Here is what the transform looks like on an undistorted and thresholded image of
 
 ![Test Transform](./output_images/test_transform.png)
 
-Here, one can see the clear right curvature of the road. Fortunately, despite the curvature, the lanes are still parallel, indicating the transform was done correctly. See `src/perspective_transform.py` for the code.
+Here, one can clearly see the right curvature of the road. Fortunately, despite the curvature, the lanes are still parallel, indicating the transform was done correctly. See `src/perspective_transform.py` for the code.
+
+## Lane Identification and Fitting
+TODO
+### Histogram Peaks
+![Histogram](./output_images/histogram.png)
+### Sliding Window Approach
+![Histogram](./output_images/sliding_windows.png)
+
+

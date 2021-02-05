@@ -37,71 +37,60 @@ def draw_plot_save(img, points, plt_title=None, save_path=None):
         plt.savefig(save_path)
     plt.show()
 
-# use straight lines template to perform perspective transform and get M
-img = cv2.imread('../test_images/straight_lines1.jpg')
-draw_img = np.copy(img)
-
-# eyeballing 4 corners of the lane
-bottom_left = (200, img.shape[0])
-top_left = (595, 450)
-top_right = (685, 450)
-bottom_right = (1110, img.shape[0])
-
-# source points in original image
-src = np.float32(
-    [bottom_left,
-    top_left,
-    top_right,
-    bottom_right]
-)
-
-draw_plot_save(
-    img=draw_img, 
-    points=src, 
-    plt_title='Perspective Transform Pts', 
-    save_path='../output_images/transform_pts.png'
-)
-
-
-# destination pts
-dst_bottom_left = (350, img.shape[0])
-dst_top_left = (350, 0)
-dst_top_right = (950, 0)
-dst_bottom_right = (950, img.shape[0])
-
-# dest points in warped image, in same order as original
-dst = np.float32(
-    [dst_bottom_left,
-    dst_top_left,
-    dst_top_right,
-    dst_bottom_right]
-)
-
-# get transformation matrix and perform transform
-M = cv2.getPerspectiveTransform(src, dst)
-size = (img.shape[1], img.shape[0])
-transformed_img = cv2.warpPerspective(img, M, size)
-
-draw_plot_save(
-    img=transformed_img, 
-    points=dst, 
-    plt_title='Transformed Image', 
-    save_path='../output_images/transform_img.png'
-)
-
-# draw lines on transformed image
-line_color = (255, 0, 0)
-lines_img = cv2.line(transformed_img, dst_bottom_left, dst_top_left, line_color, 3)
-lines_img = cv2.line(transformed_img, dst_bottom_right, dst_top_right, line_color, 3)
-
-plt.imshow(cv2.cvtColor(transformed_img, cv2.COLOR_BGR2RGB))
-plt.plot(dst_bottom_left[0], dst_bottom_left[1], '.')
-plt.plot(dst_top_left[0], dst_top_left[1], '.')
-plt.plot(dst_top_right[0], dst_top_right[1], '.')
-plt.plot(dst_bottom_right[0], dst_bottom_right[1], '.')
-plt.title('Transformed Image')
-plt.savefig('../output_images/transform_img.png')
-plt.show()
 
 def get_transform_matrix():
+    # use straight lines template to perform perspective transform and get M
+    img = cv2.imread('../test_images/straight_lines1.jpg')
+    draw_img = np.copy(img)
+
+    # eyeballing 4 corners of the lane
+    bottom_left = (200, img.shape[0])
+    top_left = (595, 450)
+    top_right = (685, 450)
+    bottom_right = (1110, img.shape[0])
+
+    # source points in original image
+    src = np.float32(
+        [bottom_left,
+        top_left,
+        top_right,
+        bottom_right]
+    )
+    # draw points and lines on original image
+    draw_plot_save(
+        img=draw_img, 
+        points=src, 
+        plt_title='Perspective Transform Pts', 
+        save_path='../output_images/transform_pts.png'
+    )
+
+
+    # destination pts
+    dst_bottom_left = (350, img.shape[0])
+    dst_top_left = (350, 0)
+    dst_top_right = (950, 0)
+    dst_bottom_right = (950, img.shape[0])
+
+    # dest points in warped image, in same order as original
+    dst = np.float32(
+        [dst_bottom_left,
+        dst_top_left,
+        dst_top_right,
+        dst_bottom_right]
+    )
+
+    # get transformation matrix and perform transform
+    M = cv2.getPerspectiveTransform(src, dst)
+    size = (img.shape[1], img.shape[0])
+    transformed_img = cv2.warpPerspective(img, M, size)
+
+    # draw points and lines on transformed image
+    draw_plot_save(
+        img=transformed_img, 
+        points=dst, 
+        plt_title='Transformed Image', 
+        save_path='../output_images/transform_img.png'
+    )
+
     return src, dst, M
+

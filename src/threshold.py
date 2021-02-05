@@ -181,4 +181,4 @@ def test_thresholding():
     plt.savefig('../output_images/test_threshold_OR.png')
     plt.show()
 
-test_thresholding()
+#test_thresholding()
