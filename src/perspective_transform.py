@@ -57,12 +57,12 @@ def get_transform_matrix():
         bottom_right]
     )
     # draw points and lines on original image
-    draw_plot_save(
-        img=draw_img, 
-        points=src, 
-        plt_title='Perspective Transform Pts', 
-        save_path='../output_images/transform_pts.png'
-    )
+    # draw_plot_save(
+    #     img=draw_img, 
+    #     points=src, 
+    #     plt_title='Perspective Transform Pts', 
+    #     save_path='../output_images/transform_pts.png'
+    # )
 
 
     # destination pts
@@ -85,12 +85,12 @@ def get_transform_matrix():
     transformed_img = cv2.warpPerspective(img, M, size)
 
     # draw points and lines on transformed image
-    draw_plot_save(
-        img=transformed_img, 
-        points=dst, 
-        plt_title='Transformed Image', 
-        save_path='../output_images/transform_img.png'
-    )
+    # draw_plot_save(
+    #     img=transformed_img, 
+    #     points=dst, 
+    #     plt_title='Transformed Image', 
+    #     save_path='../output_images/transform_img.png'
+    # )
 
     return src, dst, M
 

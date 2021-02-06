@@ -1,6 +1,6 @@
 # Advanced Lane Finding using Computer Vision
 
-This is a detailed description of a software pipeline that identifies lane lines in a video stream. See `src/main.py` for the main script that contains the pieline.
+This is a detailed description of a software pipeline that identifies lane lines in a video stream. See `src/main.py` for the main script that contains the pipeline.
 
 ## Camera Calibration
 First, I performed [camera calibration](https://docs.opencv.org/4.4.0/dc/dbb/tutorial_py_calibration.html) using chessboard images stored in `camera_cal/`:
@@ -42,10 +42,10 @@ Here is what the transform looks like on an undistorted and thresholded image of
 Here, one can clearly see the right curvature of the road. Fortunately, despite the curvature, the lanes are still parallel, indicating the transform was done correctly. See `src/perspective_transform.py` for the code.
 
 ## Lane Identification and Fitting
-TODO
+TODO: add details
 ### Histogram Peaks
 ![Histogram](./output_images/histogram.png)
 ### Sliding Window Approach
-![Histogram](./output_images/sliding_windows.png)
-
-
+![Sliding Windows](./output_images/sliding_windows.png)
+#### Lane Lines Fit
+![Lane Lines Fit](./output_images/lane_lines_fit.png)

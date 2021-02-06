@@ -16,11 +16,8 @@ class Line(object):
         # start looking in bottom half, lanes tend to be straighter closer to car
         bottom_half = processed_frame[processed_frame.shape[0]//2:, :]
         hist = np.sum(bottom_half, axis=0)
-        plt.plot(hist)
-        plt.title('Histogram')
-        plt.savefig('../output_images/histogram.png')
-        plt.show()
 
+        # image for drawing on
         draw_img = np.dstack((processed_frame, processed_frame, processed_frame))*255
 
         # get peak for left and right lane
@@ -85,31 +82,61 @@ class Line(object):
             left_lane_inds.append(inside_left_inds)
             right_lane_inds.append(inside_right_inds)
 
-            # if num pixels in window > min_pix: re-center window (leftx_curr, rightx_curr)
+            # => adjust prediction of lane side to side by re-centering window to mean of pixels
             if len(inside_left_inds) > min_pix:
                 leftx_curr = np.int(np.mean(nonzerox[inside_left_inds]))
             if len(inside_right_inds) > min_pix:
                 rightx_curr = np.int(np.mean(nonzerox[inside_right_inds]))
 
         
-        # now that we have our windows tracking both lane lines
-        # combine ALL pixels in a given lane into one index list
+        # combine ALL pixel indexes from ALL windows of a given lane into one index list
         left_lane_inds = np.concatenate(left_lane_inds)
+        print('left lane inds:', left_lane_inds)
         right_lane_inds = np.concatenate(right_lane_inds)
 
-        # TODO: extract left and right lane pixel positions
-        # and return
-
+        # get ALL left and right lane pixel positions using the indexes
+        # the example has len(nonzerox) == 67000 and len(left_lane_inds) == 37000
+        # makes sense that roughly 50% of nonzero pixels are in the left lane
+        leftx = nonzerox[left_lane_inds]  # which nonzero pixels are within the left lane window?
+        lefty = nonzeroy[left_lane_inds]
+        rightx = nonzerox[right_lane_inds]
+        righty = nonzeroy[right_lane_inds]
+        print('leftx:', leftx)
         
-        # plt.imshow(draw_img)
-        # plt.title('Sliding Windows')
-        # plt.savefig('../output_images/sliding_windows2.png')
-        # plt.show()
+        return leftx, lefty, rightx, righty, draw_img
 
 
     def fit_polynomials(self, processed_frame):
-        pass
+        """
+        Fit a 2nd degree polynomial to the chosen pixels of the lane.
 
+        We have left and right lanes.
+        """
+        leftx, lefty, rightx, righty, draw_img = self.find_line(processed_frame)
+
+        # get fit coefficients, note x and y are reversed from the norm
+        left_coef = np.polyfit(lefty, leftx, 2)
+        right_coef = np.polyfit(righty, rightx, 2)
+        print('left coef:', left_coef)
+        print('right coef:', right_coef)
+
+        # ax^2 + bx + c or ay^2 + by + c
+        y = np.linspace(0, processed_frame.shape[0]-1, processed_frame.shape[0])
+        left_fit = left_coef[0]*y**2 + left_coef[1]*y + left_coef[2]
+        print('left fit:', left_fit)
+        right_fit = right_coef[0]*y**2 + right_coef[1]*y + right_coef[2]
+
+        # change color of lane pixels
+        draw_img[lefty, leftx] = [255, 0, 0]
+        draw_img[righty, rightx] = [0, 0, 255]
+
+        # plot the fit on the lane line image
+        # plt.imshow(draw_img)
+        # plt.plot(left_fit, y, color='yellow')
+        # plt.plot(right_fit, y, color='yellow')
+        # plt.title('Lane Lines Fit')
+        # plt.savefig('../output_images/lane_lines_fit.png')
+        # plt.show()
 
 
 
