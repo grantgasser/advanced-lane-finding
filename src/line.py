@@ -52,9 +52,6 @@ class Line(object):
             right_window_leftx = rightx_curr - margin
             right_window_rightx = rightx_curr + margin
 
-            print('bottomy:', bottomy, 'topy:', topy)
-            print('left_window_leftx:', left_window_leftx, 'left_window_rightx:', left_window_rightx)
-
             # draw left and right windows given (x,y) corners of rectangle
             cv2.rectangle(
                 draw_img, 
@@ -70,15 +67,13 @@ class Line(object):
                 (0, 255, 0), 
                 2
             )
-            print('nonzerox:', nonzerox)
-            print('nonzeroy:', nonzeroy)
+
             # add pixel indices that are within the window 
             inside_left_inds = ((nonzerox > left_window_leftx) & (nonzerox < left_window_rightx) & \
                 (nonzeroy > topy) & (nonzeroy < bottomy)).nonzero()[0]
             inside_right_inds = ((nonzerox > right_window_leftx) & (nonzerox < right_window_rightx) & \
                 (nonzeroy > topy) & (nonzeroy < bottomy)).nonzero()[0]
 
-            print('inside left inds:', inside_left_inds)
             left_lane_inds.append(inside_left_inds)
             right_lane_inds.append(inside_right_inds)
 
@@ -91,7 +86,6 @@ class Line(object):
         
         # combine ALL pixel indexes from ALL windows of a given lane into one index list
         left_lane_inds = np.concatenate(left_lane_inds)
-        print('left lane inds:', left_lane_inds)
         right_lane_inds = np.concatenate(right_lane_inds)
 
         # get ALL left and right lane pixel positions using the indexes
@@ -101,7 +95,6 @@ class Line(object):
         lefty = nonzeroy[left_lane_inds]
         rightx = nonzerox[right_lane_inds]
         righty = nonzeroy[right_lane_inds]
-        print('leftx:', leftx)
         
         return leftx, lefty, rightx, righty, draw_img
 
@@ -117,13 +110,10 @@ class Line(object):
         # get fit coefficients, note x and y are reversed from the norm
         left_coef = np.polyfit(lefty, leftx, 2)
         right_coef = np.polyfit(righty, rightx, 2)
-        print('left coef:', left_coef)
-        print('right coef:', right_coef)
 
         # ax^2 + bx + c or ay^2 + by + c
         y = np.linspace(0, processed_frame.shape[0]-1, processed_frame.shape[0])
         left_fit = left_coef[0]*y**2 + left_coef[1]*y + left_coef[2]
-        print('left fit:', left_fit)
         right_fit = right_coef[0]*y**2 + right_coef[1]*y + right_coef[2]
 
         # change color of lane pixels
@@ -138,6 +128,7 @@ class Line(object):
         # plt.savefig('../output_images/lane_lines_fit.png')
         # plt.show()
 
+        return left_fit, right_fit, y
 
 
 

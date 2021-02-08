@@ -39,6 +39,16 @@ def draw_plot_save(img, points, plt_title=None, save_path=None):
 
 
 def get_transform_matrix():
+    """
+    Using template image of straight lane lines, manually create src and dst points
+    to perform the perspective transform.
+
+    Returns:
+        src (np.ndarray): 2d array of x,y points representing source points
+        dst (np.ndarray): 2d array of x,y points representing dest. points
+        M (np.ndarray): transformation matrix
+        M_inv (np.ndarray): inverse of transformation matrix
+    """
     # use straight lines template to perform perspective transform and get M
     img = cv2.imread('../test_images/straight_lines1.jpg')
     draw_img = np.copy(img)
@@ -81,6 +91,7 @@ def get_transform_matrix():
 
     # get transformation matrix and perform transform
     M = cv2.getPerspectiveTransform(src, dst)
+    M_inv = cv2.getPerspectiveTransform(dst, src)
     size = (img.shape[1], img.shape[0])
     transformed_img = cv2.warpPerspective(img, M, size)
 
@@ -92,5 +103,5 @@ def get_transform_matrix():
     #     save_path='../output_images/transform_img.png'
     # )
 
-    return src, dst, M
+    return src, dst, M, M_inv
 
