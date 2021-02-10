@@ -5,13 +5,19 @@ import numpy as np
 import matplotlib.pyplot as plt
 import cv2
 
-class Line(object):
+class Lane(object):
     def __init__(self):
-        pass
+        self.detected = True  # did last frame pass sanity check?
+        self.consecutive_bad_frames = 0  # num of consecutive bad frames (failed sanity check)
+        self.num_prev_frames = 3  # num prev frames to store data for
 
-    def find_line(self, processed_frame):
+        # TODO: finish attributes
+        self.recent_leftx = []
+        self.offset = None
+
+    def window_search(self, processed_frame):
         """
-        Find lane lines in a new, pre-processed frame
+        Find lane lines in a transformed frame using the window search
         """
         # start looking in bottom half, lanes tend to be straighter closer to car
         bottom_half = processed_frame[processed_frame.shape[0]//2:, :]
@@ -32,7 +38,7 @@ class Line(object):
         min_pix = 50  # min nonzero pixels found in window to re-center the window
 
         window_height = np.int(processed_frame.shape[0]/n_windows)
-        nonzeroy, nonzerox = processed_frame.nonzero()  # find x, y positions of nonero pixels
+        nonzeroy, nonzerox = processed_frame.nonzero()  # find x, y positions of nonzero pixels
         
         # current positions of windows
         leftx_curr = leftx_base  
@@ -77,6 +83,7 @@ class Line(object):
             left_lane_inds.append(inside_left_inds)
             right_lane_inds.append(inside_right_inds)
 
+            # TODO: handle sharp turns where lane goes off of image (avoid stacking windows on side of img to top)
             # => adjust prediction of lane side to side by re-centering window to mean of pixels
             if len(inside_left_inds) > min_pix:
                 leftx_curr = np.int(np.mean(nonzerox[inside_left_inds]))
@@ -99,19 +106,54 @@ class Line(object):
         return leftx, lefty, rightx, righty, draw_img
 
 
+    def margin_search(processed_frame, margin=100):
+        """
+        Find lane lines using margin search of prior lane
+        """
+        # find x, y positions of nonzero pixels
+        nonzeroy, nonzerox = processed_frame.nonzero()
+
+        # image for drawing on
+        draw_img = np.dstack((processed_frame, processed_frame, processed_frame))*255
+
+        # get indexes of these pixels if they fit within prev lane line +/- margin
+        left_lane_inds = None
+        right_lane_inds = None
+
+        # TODO: also need to address when line goes off of frame on sharp turn
+
+        # get all left and right lane pixel positions for entire frame (w/in margin)
+        leftx = nonzerox[left_lane_inds]
+        lefty = nonzeroy[left_lane_inds]
+        rightx = nonzerox[right_lane_inds]
+        righty = nonzeroy[right_lane_inds]
+
+        return leftx, lefty, rightx, righty, draw_img
+
+
     def fit_polynomials(self, processed_frame):
         """
         Fit a 2nd degree polynomial to the chosen pixels of the lane.
 
         We have left and right lanes.
         """
-        leftx, lefty, rightx, righty, draw_img = self.find_line(processed_frame)
+        # determine what kind of search to do
+        if not self.detected:
+            if self.consecutive_bad_frames >= 2:
+                # reset and do window search from scratch
+                leftx, lefty, rightx, righty, draw_img = self.window_search(processed_frame)
+            else:
+                # skip back once to get previous of previous 
+                # TODO: 
+        else:
+            # margin search (more efficient)
+            leftx, lefty, rightx, righty, draw_img = self.margin_search(processed_frame)
 
         # get fit coefficients, note x and y are reversed from the norm
         left_coef = np.polyfit(lefty, leftx, 2)
         right_coef = np.polyfit(righty, rightx, 2)
 
-        # ax^2 + bx + c or ay^2 + by + c
+        # ay^2 + by + c
         y = np.linspace(0, processed_frame.shape[0]-1, processed_frame.shape[0])
         left_fit = left_coef[0]*y**2 + left_coef[1]*y + left_coef[2]
         right_fit = right_coef[0]*y**2 + right_coef[1]*y + right_coef[2]
@@ -129,7 +171,7 @@ class Line(object):
         offset = int(mid_lane - (draw_img.shape[1] // 2))
         offset_meters = offset * x_meteres_per_px
 
-        # measure curvature (see radius of curvature formula online)
+        # TODO: measure curvature (see radius of curvature formula online)
         # y_bottom = np.max(y)  # want curvature at bottom of image, closest to car
         # left_curve_radius = ((1 + (2*left_fit[0]*y_bottom*y_meters_per_px + left_fit[1])**2)**1.5) / np.abs(2*left_fit[0])
         # right_curve_radius = ((1 + (2*right_fit[0]*y_bottom*y_meters_per_px + right_fit[1])**2)**1.5) / np.abs(2*right_fit[0])
@@ -145,6 +187,28 @@ class Line(object):
         # plt.show()
 
         return left_fit, right_fit, y, offset_meters
+
+
+    def sanity_check():
+        """Verify lane predictions make reasonable sense"""
+        pass_tests = False
+
+        # TODO: should have "similar" curvature
+        
+        # TODO: should be separated by approx. correct horizontal distance
+
+        # TODO: should be roughly parallel
+
+        if pass_tests:
+            self.detected = True
+            self.consecutive_bad_frames = 0
+        else:
+            self.detected = False
+            self.consecutive_bad_frames += 1
+    
+    def smooth(n=3):
+        """Average over last n frames"""
+        raise NotImplementedError()
 
 
 

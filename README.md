@@ -2,8 +2,8 @@
 
 This is a detailed description of a software pipeline that identifies lane lines in a video stream. See `src/main.py` for the main script that contains the pipeline.
 
-# Project Output
-![Output Gif](output_videos/project_video.gif)
+# Project Output Slice
+[![Output Gif](output_videos/project_video.gif)](https://youtu.be/Z7qNvgJ7ehc)
 
 # Steps Explained
 ## Camera Calibration

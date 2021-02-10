@@ -11,7 +11,7 @@ import matplotlib.pyplot as plt
 from calibrate import calibrate, undistort
 import threshold as th
 import perspective_transform as pt
-from line import Line
+from lane import Lane
 import postprocessing as post
 
 # calibrate the camera using the given chessboard images
@@ -51,19 +51,19 @@ while cap.isOpened():
     color_binary = th.saturation_thresh(frame)
 
     # combine gradient and color thresholding
-    final_output = th.threshold(gradient_binary, color_binary)
+    thresholded_img = th.threshold(gradient_binary, color_binary)
 
     # perspective transform: easier to measure curvature of lane from bird's eye view
     # also makes it easier to match car's location with a road map
     src, dst, M, M_inv = pt.get_transform_matrix()
 
     # transform image
-    size = (final_output.shape[1], final_output.shape[0])
-    transformed_img = cv2.warpPerspective(final_output, M, size)
+    size = (thresholded_img.shape[1], thresholded_img.shape[0])
+    transformed_img = cv2.warpPerspective(thresholded_img, M, size)
 
     # draw lines on original
-    gray_final_output = np.uint8(final_output*255)  # binary to gray
-    bgr_final_output = cv2.cvtColor(gray_final_output, cv2.COLOR_GRAY2BGR)
+    # gray_final_output = np.uint8(final_output*255)  # binary to gray
+    # bgr_final_output = cv2.cvtColor(gray_final_output, cv2.COLOR_GRAY2BGR)
     # pt.draw_plot_save(
     #     bgr_final_output, 
     #     src,
@@ -77,8 +77,8 @@ while cap.isOpened():
     #pt.draw_plot_save(bgr_transformed_img, dst, 'Test Transformation', '../output_images/test_transform.png')
 
     # fit lines
-    line = Line()
-    left_fit, right_fit, y, offset_meters = line.fit_polynomials(transformed_img)
+    lane = Lane()
+    left_fit, right_fit, y, offset_meters = lane.fit_polynomials(transformed_img)
 
     # create blank for drawing lane lines
     zeros = np.zeros_like(transformed_img).astype(np.uint8)
@@ -114,8 +114,8 @@ cap.release()
 cv2.destroyAllWindows()
 
 # use predicted frames to convert back to video
-video_frames = post.write_images(predicted_frames, '../video_frames/')
-clip = post.make_video(video_frames, os.path.join('../output_videos/', input_video))
+# video_frames = post.write_images(predicted_frames, '../video_frames/')
+# clip = post.make_video(video_frames, os.path.join('../output_videos/', input_video))
 # post.write_gif(
 #     clip=clip, 
 #     path=os.path.join('../output_videos/', input_video + '.gif'),
