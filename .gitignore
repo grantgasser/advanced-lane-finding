@@ -126,3 +126,4 @@ dmypy.json
 
 # videos are large
 *.mp4
+video_frames/

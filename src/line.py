@@ -120,15 +120,31 @@ class Line(object):
         draw_img[lefty, leftx] = [255, 0, 0]
         draw_img[righty, rightx] = [0, 0, 255]
 
+        # pixels to meters conversion
+        y_meters_per_px = 30/draw_img.shape[0]  # lane is roughly 30m long in the images
+        x_meteres_per_px = 3.7/600  # lane is roughly 3.7m (per US regulation), but only tends to cover abt 600 pixels in x direction
+
+        # find offset
+        mid_lane = int(left_fit[-1] + ((right_fit[-1] - left_fit[-1]) // 2))
+        offset = int(mid_lane - (draw_img.shape[1] // 2))
+        offset_meters = offset * x_meteres_per_px
+
+        # measure curvature (see radius of curvature formula online)
+        # y_bottom = np.max(y)  # want curvature at bottom of image, closest to car
+        # left_curve_radius = ((1 + (2*left_fit[0]*y_bottom*y_meters_per_px + left_fit[1])**2)**1.5) / np.abs(2*left_fit[0])
+        # right_curve_radius = ((1 + (2*right_fit[0]*y_bottom*y_meters_per_px + right_fit[1])**2)**1.5) / np.abs(2*right_fit[0])
+        # print('Left curve radius:', left_curve_radius)
+        # print('Right curve radius:', right_curve_radius)
+
         # plot the fit on the lane line image
         # plt.imshow(draw_img)
         # plt.plot(left_fit, y, color='yellow')
         # plt.plot(right_fit, y, color='yellow')
         # plt.title('Lane Lines Fit')
-        # plt.savefig('../output_images/lane_lines_fit.png')
+        # # plt.savefig('../output_images/lane_lines_fit.png')
         # plt.show()
 
-        return left_fit, right_fit, y
+        return left_fit, right_fit, y, offset_meters
 
 
 

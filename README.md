@@ -2,6 +2,10 @@
 
 This is a detailed description of a software pipeline that identifies lane lines in a video stream. See `src/main.py` for the main script that contains the pipeline.
 
+# Project Output
+![Output Gif](output_videos/project_video.gif)
+
+# Steps Explained
 ## Camera Calibration
 First, I performed [camera calibration](https://docs.opencv.org/4.4.0/dc/dbb/tutorial_py_calibration.html) using chessboard images stored in `camera_cal/`:
 
