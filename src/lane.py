@@ -5,6 +5,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 import cv2
 
+from collections import deque
+
 class Lane(object):
     def __init__(self):
         self.detected = True  # did last frame pass sanity check?
@@ -12,8 +14,16 @@ class Lane(object):
         self.num_prev_frames = 3  # num prev frames to store data for
 
         # TODO: finish attributes
-        self.recent_leftx = []
+        self.recent_leftx = deque(maxlen=self.num_prev_frames)
+        self.recent_lefty = deque(maxlen=self.num_prev_frames)
+        self.recent_rightx = deque(maxlen=self.num_prev_frames)
+        self.recent_righty = deque(maxlen=self.num_prev_frames)
+        self.left_fit = deque(maxlen=self.num_prev_frames)
+        self.right_fit = deque(maxlen=self.num_prev_frames)
         self.offset = None
+        self.radius_curve_left = None
+        self.radius_curve_right = None
+        self.lane_width = 600  # near bottom of image, lane is typically ~600 pixels
 
     def window_search(self, processed_frame):
         """
@@ -117,8 +127,12 @@ class Lane(object):
         draw_img = np.dstack((processed_frame, processed_frame, processed_frame))*255
 
         # get indexes of these pixels if they fit within prev lane line +/- margin
-        left_lane_inds = None
-        right_lane_inds = None
+        left_lane_inds = ((nonzerox > (self.left_fit[-1][0]*(nonzeroy**2) + self.left_fit[-1][1]*nonzeroy + 
+                    self.left_fit[-1][2] - margin)) & (nonzerox < (self.left_fit[-1][0]*(nonzeroy**2) + 
+                    self.left_fit[-1][1]*nonzeroy + self.left_fit[-1][2] + margin)))
+        right_lane_inds = ((nonzerox > (self.right_fit[-1][0]*(nonzeroy**2) + self.right_fit[-1][1]*nonzeroy + 
+                    self.right_fit[-1][2] - margin)) & (nonzerox < (self.right_fit[-1][0]*(nonzeroy**2) + 
+                    self.right_fit[-1][1]*nonzeroy + self.right_fit[-1][2] + margin)))
 
         # TODO: also need to address when line goes off of frame on sharp turn
 
@@ -143,11 +157,17 @@ class Lane(object):
                 # reset and do window search from scratch
                 leftx, lefty, rightx, righty, draw_img = self.window_search(processed_frame)
             else:
-                # skip back once to get previous of previous 
-                # TODO: 
+                # TODO: skip back once to get previous of previous 
+                
         else:
             # margin search (more efficient)
             leftx, lefty, rightx, righty, draw_img = self.margin_search(processed_frame)
+
+        # store x lane values
+        self.recent_leftx.append(leftx)
+        self.recent_lefty.append(lefty)
+        self.recent_rightx.append(rightx)
+        self.recent_righty.append(righty)
 
         # get fit coefficients, note x and y are reversed from the norm
         left_coef = np.polyfit(lefty, leftx, 2)
@@ -158,13 +178,17 @@ class Lane(object):
         left_fit = left_coef[0]*y**2 + left_coef[1]*y + left_coef[2]
         right_fit = right_coef[0]*y**2 + right_coef[1]*y + right_coef[2]
 
+        # store coefficients of fit
+        self.left_fit.append(left_fit)
+        self.right_fit.append(right_fit)
+
         # change color of lane pixels
         draw_img[lefty, leftx] = [255, 0, 0]
         draw_img[righty, rightx] = [0, 0, 255]
 
         # pixels to meters conversion
         y_meters_per_px = 30/draw_img.shape[0]  # lane is roughly 30m long in the images
-        x_meteres_per_px = 3.7/600  # lane is roughly 3.7m (per US regulation), but only tends to cover abt 600 pixels in x direction
+        x_meteres_per_px = 3.7/self.avg_lane_pixel_length  # lane is roughly 3.7m (per US regulation), tends to cover abt 600 pixels in x direction
 
         # find offset
         mid_lane = int(left_fit[-1] + ((right_fit[-1] - left_fit[-1]) // 2))
@@ -177,6 +201,9 @@ class Lane(object):
         # right_curve_radius = ((1 + (2*right_fit[0]*y_bottom*y_meters_per_px + right_fit[1])**2)**1.5) / np.abs(2*right_fit[0])
         # print('Left curve radius:', left_curve_radius)
         # print('Right curve radius:', right_curve_radius)
+
+        # perform sanity check on lane predictions
+        self.sanity_check()
 
         # plot the fit on the lane line image
         # plt.imshow(draw_img)
@@ -191,13 +218,18 @@ class Lane(object):
 
     def sanity_check():
         """Verify lane predictions make reasonable sense"""
-        pass_tests = False
+        pass_tests = True
 
         # TODO: should have "similar" curvature
         
         # TODO: should be separated by approx. correct horizontal distance
+        width = np.average(self.recent_rightx[-1]) - np.average(self.recent_leftx[-1])
+        if width < (self.lane_width - 100) or width > (self.lane_width + 100):
+            pass_tests = False
+            print(f'lane width fail = {estimated_lane_width}. resetting...')
 
         # TODO: should be roughly parallel
+
 
         if pass_tests:
             self.detected = True

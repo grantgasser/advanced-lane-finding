@@ -97,7 +97,8 @@ while cap.isOpened():
     final_image = cv2.addWeighted(undist, 1, unwarped, 0.25, 0)
 
     # add measurement data to frame
-    final_image = cv2.putText(final_image, f'Offset: {offset_meters:0.2f}m', (50, 50), 
+    offset_side = 'left' if offset_meters < 0 else 'right'
+    final_image = cv2.putText(final_image, f'Offset: {abs(offset_meters):0.2f}m {offset_side} of center', (50, 50), 
         cv2.FONT_HERSHEY_COMPLEX, 1, (255, 255, 255), 2, cv2.LINE_AA)
     
     # show predict
