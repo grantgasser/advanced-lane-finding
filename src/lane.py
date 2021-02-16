@@ -9,25 +9,42 @@ from collections import deque
 
 class Lane(object):
     def __init__(self):
+        """
+        Lane class, responsible for predicting on and storing left and right
+        lane line information
+        """
         self.detected = True  # did last frame pass sanity check?
         self.consecutive_bad_frames = 0  # num of consecutive bad frames (failed sanity check)
         self.num_prev_frames = 3  # num prev frames to store data for
+        self.lane_width = 500  # near bottom of image, lane is typically ~500 pixels
+        self.top_lane_width = 200
 
-        # TODO: finish attributes
+        # queues for storing recent predictions
         self.recent_leftx = deque(maxlen=self.num_prev_frames)
         self.recent_lefty = deque(maxlen=self.num_prev_frames)
         self.recent_rightx = deque(maxlen=self.num_prev_frames)
         self.recent_righty = deque(maxlen=self.num_prev_frames)
-        self.left_fit = deque(maxlen=self.num_prev_frames)
-        self.right_fit = deque(maxlen=self.num_prev_frames)
+        self.recent_right_curve = deque(maxlen=self.num_prev_frames)
+        self.recent_left_curve = deque(maxlen=self.num_prev_frames)
+        self.recent_left_coef = deque(maxlen=self.num_prev_frames)
+        self.recent_right_coef = deque(maxlen=self.num_prev_frames)
+        self.recent_left_fit = deque(maxlen=self.num_prev_frames)
+        self.recent_right_fit = deque(maxlen=self.num_prev_frames)
         self.offset = None
-        self.radius_curve_left = None
-        self.radius_curve_right = None
-        self.lane_width = 600  # near bottom of image, lane is typically ~600 pixels
 
     def window_search(self, processed_frame):
         """
         Find lane lines in a transformed frame using the window search
+
+        Args:
+            processed_frame (np.ndarray): pre-processed frame to search on
+
+        Returns: 
+            leftx (np.ndarray): 1-d array of left lane x pixels 
+            lefty (np.ndarray): 1-d array of left lane y pixels 
+            rightx (np.ndarray): 1-d array of right lane x pixels 
+            righty (np.ndarray): 1-d array of right lane y pixels 
+            draw_img (np.ndarray): image to draw on
         """
         # start looking in bottom half, lanes tend to be straighter closer to car
         bottom_half = processed_frame[processed_frame.shape[0]//2:, :]
@@ -116,9 +133,20 @@ class Lane(object):
         return leftx, lefty, rightx, righty, draw_img
 
 
-    def margin_search(processed_frame, margin=100):
+    def margin_search(self, processed_frame, margin=100):
         """
         Find lane lines using margin search of prior lane
+
+        Args:
+            processed_frame (np.ndarray): pre-processed frame to search on
+            margin (int): width of search margin in pixels in each direction (so really searching in 2*margin)
+
+        Returns: 
+            leftx (np.ndarray): 1-d array of left lane x pixels 
+            lefty (np.ndarray): 1-d array of left lane y pixels 
+            rightx (np.ndarray): 1-d array of right lane x pixels 
+            righty (np.ndarray): 1-d array of right lane y pixels 
+            draw_img (np.ndarray): image to draw on
         """
         # find x, y positions of nonzero pixels
         nonzeroy, nonzerox = processed_frame.nonzero()
@@ -127,14 +155,15 @@ class Lane(object):
         draw_img = np.dstack((processed_frame, processed_frame, processed_frame))*255
 
         # get indexes of these pixels if they fit within prev lane line +/- margin
-        left_lane_inds = ((nonzerox > (self.left_fit[-1][0]*(nonzeroy**2) + self.left_fit[-1][1]*nonzeroy + 
-                    self.left_fit[-1][2] - margin)) & (nonzerox < (self.left_fit[-1][0]*(nonzeroy**2) + 
-                    self.left_fit[-1][1]*nonzeroy + self.left_fit[-1][2] + margin)))
-        right_lane_inds = ((nonzerox > (self.right_fit[-1][0]*(nonzeroy**2) + self.right_fit[-1][1]*nonzeroy + 
-                    self.right_fit[-1][2] - margin)) & (nonzerox < (self.right_fit[-1][0]*(nonzeroy**2) + 
-                    self.right_fit[-1][1]*nonzeroy + self.right_fit[-1][2] + margin)))
+        left_lane_inds = ((nonzerox > (self.recent_left_coef[-1][0]*(nonzeroy**2) + self.recent_left_coef[-1][1]*nonzeroy + 
+                    self.recent_left_coef[-1][2] - margin)) & (nonzerox < (self.recent_left_coef[-1][0]*(nonzeroy**2) + 
+                    self.recent_left_coef[-1][1]*nonzeroy + self.recent_left_coef[-1][2] + margin)))
+        right_lane_inds = ((nonzerox > (self.recent_right_coef[-1][0]*(nonzeroy**2) + self.recent_right_coef[-1][1]*nonzeroy + 
+                    self.recent_right_coef[-1][2] - margin)) & (nonzerox < (self.recent_right_coef[-1][0]*(nonzeroy**2) + 
+                    self.recent_right_coef[-1][1]*nonzeroy + self.recent_right_coef[-1][2] + margin)))
 
-        # TODO: also need to address when line goes off of frame on sharp turn
+        
+        # TODO: address when line goes off of frame on sharp turn
 
         # get all left and right lane pixel positions for entire frame (w/in margin)
         leftx = nonzerox[left_lane_inds]
@@ -150,17 +179,23 @@ class Lane(object):
         Fit a 2nd degree polynomial to the chosen pixels of the lane.
 
         We have left and right lanes.
+
+        Args:
+            processed_frame (np.ndarray): pre-processed frame to search on
+
+        Returns:
+            left_fit (np.ndarray): array of predicted left lane pixels 
+            right_fit (np.ndarray): array of predicted right lane pixels
+            y (np.ndarray): array of y values 
+            offset_meters (np.ndarray): vehicle offset from center lane in meters
         """
         # determine what kind of search to do
-        if not self.detected:
-            if self.consecutive_bad_frames >= 2:
-                # reset and do window search from scratch
-                leftx, lefty, rightx, righty, draw_img = self.window_search(processed_frame)
-            else:
-                # TODO: skip back once to get previous of previous 
-                
+        if not self.detected or len(self.recent_leftx) < self.num_prev_frames:
+            # reset and do window search from scratch
+            leftx, lefty, rightx, righty, draw_img = self.window_search(processed_frame)
+
         else:
-            # margin search (more efficient)
+            # do a margin search after successful detection (more efficient)
             leftx, lefty, rightx, righty, draw_img = self.margin_search(processed_frame)
 
         # store x lane values
@@ -172,6 +207,8 @@ class Lane(object):
         # get fit coefficients, note x and y are reversed from the norm
         left_coef = np.polyfit(lefty, leftx, 2)
         right_coef = np.polyfit(righty, rightx, 2)
+        self.recent_left_coef.append(left_coef)
+        self.recent_right_coef.append(right_coef)
 
         # ay^2 + by + c
         y = np.linspace(0, processed_frame.shape[0]-1, processed_frame.shape[0])
@@ -179,57 +216,46 @@ class Lane(object):
         right_fit = right_coef[0]*y**2 + right_coef[1]*y + right_coef[2]
 
         # store coefficients of fit
-        self.left_fit.append(left_fit)
-        self.right_fit.append(right_fit)
+        self.recent_left_fit.append(left_fit)
+        self.recent_right_fit.append(right_fit)
+
+        # return a smoothed/averaged version of left and right
+        left_fit, right_fit = self.smooth()
 
         # change color of lane pixels
         draw_img[lefty, leftx] = [255, 0, 0]
         draw_img[righty, rightx] = [0, 0, 255]
 
         # pixels to meters conversion
-        y_meters_per_px = 30/draw_img.shape[0]  # lane is roughly 30m long in the images
-        x_meteres_per_px = 3.7/self.avg_lane_pixel_length  # lane is roughly 3.7m (per US regulation), tends to cover abt 600 pixels in x direction
+        y_meters_per_px = 30/draw_img.shape[0]  # lane is roughly 30m long
+        x_meters_per_px = 3.7/self.lane_width  # lane is roughly 3.7m wide
 
         # find offset
         mid_lane = int(left_fit[-1] + ((right_fit[-1] - left_fit[-1]) // 2))
         offset = int(mid_lane - (draw_img.shape[1] // 2))
-        offset_meters = offset * x_meteres_per_px
-
-        # TODO: measure curvature (see radius of curvature formula online)
-        # y_bottom = np.max(y)  # want curvature at bottom of image, closest to car
-        # left_curve_radius = ((1 + (2*left_fit[0]*y_bottom*y_meters_per_px + left_fit[1])**2)**1.5) / np.abs(2*left_fit[0])
-        # right_curve_radius = ((1 + (2*right_fit[0]*y_bottom*y_meters_per_px + right_fit[1])**2)**1.5) / np.abs(2*right_fit[0])
-        # print('Left curve radius:', left_curve_radius)
-        # print('Right curve radius:', right_curve_radius)
+        offset_meters = offset * x_meters_per_px
 
         # perform sanity check on lane predictions
         self.sanity_check()
 
-        # plot the fit on the lane line image
-        # plt.imshow(draw_img)
-        # plt.plot(left_fit, y, color='yellow')
-        # plt.plot(right_fit, y, color='yellow')
-        # plt.title('Lane Lines Fit')
-        # # plt.savefig('../output_images/lane_lines_fit.png')
-        # plt.show()
-
         return left_fit, right_fit, y, offset_meters
 
 
-    def sanity_check():
+    def sanity_check(self):
         """Verify lane predictions make reasonable sense"""
         pass_tests = True
 
-        # TODO: should have "similar" curvature
-        
-        # TODO: should be separated by approx. correct horizontal distance
-        width = np.average(self.recent_rightx[-1]) - np.average(self.recent_leftx[-1])
-        if width < (self.lane_width - 100) or width > (self.lane_width + 100):
+        # top part of lanes should be separated by approx distance
+        top_width = self.recent_rightx[-1][-1] - self.recent_leftx[-1][0]
+        if top_width < (self.top_lane_width - 150) or top_width > (self.top_lane_width + 150):
             pass_tests = False
-            print(f'lane width fail = {estimated_lane_width}. resetting...')
-
-        # TODO: should be roughly parallel
-
+            print(f'Top lane width fail = {top_width}. resetting...')
+        
+        # bottom part of lanes should be separated by approx. correct horizontal distance
+        width = self.recent_rightx[-1][0] - self.recent_leftx[-1][-1]
+        if width < (self.lane_width - 250) or width > (self.lane_width + 250):
+            pass_tests = False
+            print(f'Bottom lane width fail = {width}. resetting...')
 
         if pass_tests:
             self.detected = True
@@ -238,10 +264,16 @@ class Lane(object):
             self.detected = False
             self.consecutive_bad_frames += 1
     
-    def smooth(n=3):
-        """Average over last n frames"""
-        raise NotImplementedError()
-
+    def smooth(self):
+        """Average over last n frames
+        
+        Returns:
+            left_smoothed (np.ndarray): 1-d array representing average of last n fits
+            right_smoothed (np.ndarray): 1-d array representing average of last n fits
+        """
+        left_smoothed = np.vstack([prev for prev in self.recent_left_fit]).mean(axis=0)
+        right_smoothed = np.vstack([prev for prev in self.recent_right_fit]).mean(axis=0)
+        return left_smoothed, right_smoothed
 
 
         
